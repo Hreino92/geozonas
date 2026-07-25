@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPAS Check — Verificador de Geozonas El Salvador</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#061224;
+    --navy-900:#0a1b30;
+    --navy-800:#0f2744;
+    --navy-700:#173357;
+    --navy-600:#22456f;
+    --teal-500:#14b8a6;
+    --teal-400:#2dd4bf;
+    --gold-500:#d4af37;
+    --gold-400:#e8c65a;
+    --red-500:#dc2626;
+    --red-glow: rgba(220,38,38,0.35);
+    --green-500:#16a34a;
+    --green-glow: rgba(22,163,74,0.35);
+    --ink-100:#eef3f8;
+    --ink-300:#b7c5d6;
+    --ink-500:#7f93ac;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 800px at 15% -10%, #0d2440 0%, transparent 60%),
+      radial-gradient(1000px 700px at 110% 10%, #0c2038 0%, transparent 55%),
+      var(--navy-950);
+    color:var(--ink-100);
+    font-family:var(--font-body);
+    min-height:100vh;
+  }
+  ::selection{background:var(--teal-500);color:var(--navy-950);}
+
+  /* ---------- HEADER ---------- */
+  header.top{
+    padding:28px clamp(18px,4vw,56px) 22px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-mark{
+    width:46px;height:46px;border-radius:10px;
+    background:linear-gradient(155deg, var(--navy-700), var(--navy-900));
+    border:1px solid rgba(212,175,55,0.35);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;flex-shrink:0;
+  }
+  .brand-mark svg{width:26px;height:26px;}
+  .brand-text h1{
+    font-family:var(--font-display);font-weight:700;font-size:1.28rem;
+    margin:0;letter-spacing:0.01em;color:var(--ink-100);
+  }
+  .brand-text p{margin:2px 0 0;font-size:0.82rem;color:var(--ink-500);font-family:var(--font-mono);letter-spacing:0.02em;}
+  .header-stats{display:flex;gap:22px;flex-wrap:wrap;}
+  .stat{text-align:right;}
+  .stat .n{font-family:var(--font-mono);font-weight:700;font-size:1.5rem;color:var(--teal-400);line-height:1;}
+  .stat .l{font-size:0.72rem;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.08em;margin-top:4px;}
+
+  /* ---------- LAYOUT ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 400px 1fr;
+    gap:0;
+    min-height:calc(100vh - 96px);
+  }
+  @media (max-width: 980px){
+    .shell{grid-template-columns:1fr;}
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  aside.panel{
+    padding:26px clamp(16px,3vw,32px) 40px;
+    border-right:1px solid rgba(255,255,255,0.06);
+    background:linear-gradient(180deg, rgba(15,39,68,0.4), transparent 200px);
+  }
+  .section-eyebrow{
+    font-family:var(--font-mono);font-size:0.7rem;letter-spacing:0.12em;
+    color:var(--gold-400);text-transform:uppercase;margin:0 0 6px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-eyebrow::before{content:'';width:16px;height:1px;background:var(--gold-500);display:inline-block;}
+  h2.panel-title{
+    font-family:var(--font-display);font-size:1.15rem;margin:0 0 18px;color:var(--ink-100);font-weight:600;
+  }
+
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;font-size:0.78rem;color:var(--ink-300);margin-bottom:6px;font-weight:500;
+  }
+  .field input{
+    width:100%;padding:11px 13px;border-radius:8px;
+    background:var(--navy-900);border:1px solid var(--navy-600);
+    color:var(--ink-100);font-family:var(--font-mono);font-size:0.92rem;
+    outline:none;transition:border-color .15s, box-shadow .15s;
+  }
+  .field input::placeholder{color:var(--ink-500);opacity:0.7;font-size:0.82rem;}
+  .field input:focus{border-color:var(--teal-500);box-shadow:0 0 0 3px rgba(20,184,166,0.15);}
+  .field-hint{font-size:0.7rem;color:var(--ink-500);margin-top:5px;line-height:1.4;}
+
+  .btn-check{
+    width:100%;margin-top:6px;padding:13px;border:none;border-radius:9px;
+    background:linear-gradient(135deg, var(--teal-500), #0d9488);
+    color:#04120f;font-family:var(--font-display);font-weight:700;font-size:0.95rem;
+    cursor:pointer;letter-spacing:0.02em;transition:transform .12s, box-shadow .12s;
+    box-shadow:0 8px 20px -8px rgba(20,184,166,0.55);
+  }
+  .btn-check:hover{transform:translateY(-1px);box-shadow:0 10px 24px -8px rgba(20,184,166,0.7);}
+  .btn-check:active{transform:translateY(0);}
+  .btn-check:focus-visible{outline:2px solid var(--gold-400);outline-offset:2px;}
+
+  .btn-secondary{
+    width:100%;margin-top:8px;padding:10px;border-radius:8px;
+    background:transparent;border:1px solid var(--navy-600);
+    color:var(--ink-300);font-family:var(--font-body);font-size:0.82rem;
+    cursor:pointer;transition:border-color .15s, color .15s;
+  }
+  .btn-secondary:hover{border-color:var(--teal-500);color:var(--teal-400);}
+
+  /* ---------- RESULT CARD ---------- */
+  #result{
+    margin-top:20px;border-radius:12px;padding:18px;display:none;
+    font-family:var(--font-body);border:1px solid;
+  }
+  #result.show{display:block;animation:rise .28s ease;}
+  @keyframes rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  #result.safe{
+    background:linear-gradient(155deg, rgba(22,163,74,0.14), rgba(22,163,74,0.04));
+    border-color:rgba(22,163,74,0.4);
+    box-shadow:0 0 0 1px rgba(22,163,74,0.08), 0 12px 30px -14px var(--green-glow);
+  }
+  #result.unsafe{
+    background:linear-gradient(155deg, rgba(220,38,38,0.14), rgba(220,38,38,0.04));
+    border-color:rgba(220,38,38,0.45);
+    box-shadow:0 0 0 1px rgba(220,38,38,0.08), 0 12px 30px -14px var(--red-glow);
+  }
+  #result .headline{
+    display:flex;align-items:center;gap:10px;font-family:var(--font-display);
+    font-weight:700;font-size:1.05rem;margin-bottom:4px;
+  }
+  #result.safe .headline{color:#4ade80;}
+  #result.unsafe .headline{color:#f87171;}
+  .headline-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+  #result.safe .headline-dot{background:var(--green-500);box-shadow:0 0 12px 2px var(--green-glow);}
+  #result.unsafe .headline-dot{background:var(--red-500);box-shadow:0 0 12px 2px var(--red-glow);}
+  #result .sub{font-size:0.82rem;color:var(--ink-300);margin-bottom:12px;}
+  .conflict-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
+  .conflict-item{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:9px 11px;border-radius:7px;background:rgba(255,255,255,0.04);
+    font-size:0.8rem;
+  }
+  .conflict-item .cat-swatch{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .conflict-item .cname{color:var(--ink-100);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .conflict-item .cdist{font-family:var(--font-mono);color:var(--ink-300);flex-shrink:0;}
+
+  /* ---------- LEGEND ---------- */
+  .legend{margin-top:30px;}
+  .legend-item{
+    display:flex;align-items:center;gap:10px;padding:7px 4px;border-radius:6px;
+    cursor:pointer;user-select:none;transition:background .12s;
+  }
+  .legend-item:hover{background:rgba(255,255,255,0.03);}
+  .legend-swatch{width:13px;height:13px;border-radius:4px;flex-shrink:0;border:1px solid rgba(255,255,255,0.25);}
+  .legend-label{font-size:0.83rem;color:var(--ink-300);flex:1;}
+  .legend-count{font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-500);}
+  .legend-item input{accent-color:var(--teal-500);cursor:pointer;}
+
+  /* ---------- MAP AREA ---------- */
+  .map-wrap{position:relative;min-height:520px;}
+  #map{position:absolute;inset:0;width:100%;height:100%;background:#0a1522;}
+  .leaflet-popup-content-wrapper{
+    background:var(--navy-800);color:var(--ink-100);border-radius:8px;
+    font-family:var(--font-body);border:1px solid var(--navy-600);
+  }
+  .leaflet-popup-tip{background:var(--navy-800);}
+  .leaflet-popup-content{font-size:0.82rem;margin:10px 12px;}
+  .leaflet-popup-content b{font-family:var(--font-display);color:var(--teal-400);}
+  .leaflet-container a.leaflet-popup-close-button{color:var(--ink-300);}
+
+  .map-badge{
+    position:absolute;top:16px;left:16px;z-index:500;
+    background:rgba(10,27,48,0.88);backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.08);border-radius:10px;
+    padding:10px 14px;font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-300);
+    max-width:280px;
+  }
+  .map-badge b{color:var(--gold-400);}
+
+  footer.foot{
+    padding:16px clamp(18px,4vw,56px);text-align:center;
+    color:var(--ink-500);font-size:0.74rem;border-top:1px solid rgba(255,255,255,0.06);
+    font-family:var(--font-mono);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L12 22M2 12L22 12M4.5 4.5L19.5 19.5M19.5 4.5L4.5 19.5" stroke="#d4af37" stroke-width="0.6" opacity="0.4"/>
+        <circle cx="12" cy="12" r="9" stroke="#2dd4bf" stroke-width="1.2"/>
+        <circle cx="12" cy="12" r="1.6" fill="#d4af37"/>
+        <path d="M12 3L12 6M12 18L12 21M3 12L6 12M18 12L21 12" stroke="#2dd4bf" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>RPAS Check</h1>
+      <p>VERIFICADOR DE GEOZONAS · EL SALVADOR</p>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat"><div class="n">222</div><div class="l">Geozonas</div></div>
+    <div class="stat"><div class="n">12</div><div class="l">Categorías</div></div>
+    <div class="stat"><div class="n">2×R</div><div class="l">Margen seguridad</div></div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="panel">
+    <p class="section-eyebrow">Punto de despegue</p>
+    <h2 class="panel-title">Ingresar coordenadas</h2>
+
+    <div class="field">
+      <label for="latInput">Latitud</label>
+      <input type="text" id="latInput" placeholder="13°41'27.9&quot; N  ó  13.6911" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="lonInput">Longitud</label>
+      <input type="text" id="lonInput" placeholder="89°11'54.0&quot; W  ó  -89.1983" autocomplete="off">
+      <div class="field-hint">Acepta GMS (° ′ ″) o decimal. Si omites la letra de hemisferio, se asume Norte para latitud y Oeste para longitud (contexto El Salvador).</div>
+    </div>
+
+    <button class="btn-check" id="checkBtn">Verificar seguridad de vuelo</button>
+    <button class="btn-secondary" id="clearBtn">Limpiar punto</button>
+
+    <div id="result"></div>
+
+    <div class="legend">
+      <p class="section-eyebrow">Capas del mapa</p>
+      <h2 class="panel-title" style="margin-bottom:8px;">Geozonas por categoría</h2>
+      <div id="legendList"></div>
+    </div>
+  </aside>
+
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="map-badge"><b>Regla de seguridad:</b> se marca en rojo si el punto ingresado está a una distancia menor que 2× el radio de cualquier geozona.</div>
+  </div>
+</div>
+
+<footer class="foot">RPAS CHECK — Herramienta de referencia operativa · Verificar siempre contra la fuente oficial AAC antes de volar</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const ZONES = [{"name": "A.I. Oscar Arnulfo Romero y Galdámez", "category": "aeropuertos", "catLabel": "Aeropuertos Internacionales", "color": "#1d4ed8", "icon": "✈", "lat": 13.440833, "lon": -89.055833, "radius_km": 6.0}, {"name": "A.I. de Ilopango", "category": "aeropuertos", "catLabel": "Aeropuertos Internacionales", "color": "#1d4ed8", "icon": "✈", "lat": 13.6994, "lon": -89.119811, "radius_km": 6.0}, {"name": "Puerto Barillas", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.265263, "lon": -88.499132, "radius_km": 2.0}, {"name": "La Bomba", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.295701, "lon": -88.53116, "radius_km": 2.0}, {"name": "Tonalá", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.579269, "lon": -89.733678, "radius_km": 2.0}, {"name": "El Zapote", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.707954, "lon": -90.026271, "radius_km": 2.0}, {"name": "Las Mesas", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.48707, "lon": -89.192655, "radius_km": 2.0}, {"name": "La Cabaña", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 14.00981, "lon": -89.184761, "radius_km": 2.0}, {"name": "La Odisea", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.332193, "lon": -88.501404, "radius_km": 2.0}, {"name": "Cara Sucia", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.775257, "lon": -90.045933, "radius_km": 2.0}, {"name": "Los Druidas", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.715573, "lon": -90.048988, "radius_km": 2.0}, {"name": "La Bendición", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.418194, "lon": -88.988407, "radius_km": 2.0}, {"name": "Casas Nuevas", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.309973, "lon": -88.505868, "radius_km": 2.0}, {"name": "Lombardía", "category": "pistas", "catLabel": "Pistas Privadas", "color": "#7c3aed", "icon": "🛬", "lat": 13.422172, "lon": -88.810251, "radius_km": 2.0}, {"name": "Escalón Norte", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.718768, "lon": -89.249942, "radius_km": 0.25}, {"name": "Samedan", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.658736, "lon": -89.250096, "radius_km": 0.25}, {"name": "Masala (Sierra Sta. Elena)", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.659828, "lon": -89.263292, "radius_km": 0.25}, {"name": "D'CASA", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.670082, "lon": -89.271665, "radius_km": 0.25}, {"name": "El paraisal", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.731565, "lon": -89.704102, "radius_km": 0.25}, {"name": "Unifersa-Disagro", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.65624, "lon": -89.277307, "radius_km": 0.25}, {"name": "Planta Holcim", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 14.326857, "lon": -89.498628, "radius_km": 0.25}, {"name": "Constitución", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.702767, "lon": -89.225631, "radius_km": 0.25}, {"name": "Las Lomas", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.677216, "lon": -89.230409, "radius_km": 0.25}, {"name": "Pirámide Banco Cuscatlán", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.672039, "lon": -89.273502, "radius_km": 0.25}, {"name": "Diaz Nuila", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.714538, "lon": -89.258339, "radius_km": 0.25}, {"name": "Altamira", "category": "helipuertos", "catLabel": "Helipuertos", "color": "#ea580c", "icon": "🚁", "lat": 13.676681, "lon": -89.221722, "radius_km": 0.25}, {"name": "Destacamento Militar #1", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 14.041917, "lon": -88.939889, "radius_km": 1.83}, {"name": "Destacamento Militar #2", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.877194, "lon": -88.6275, "radius_km": 1.83}, {"name": "Destacamento Militar #3", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.330611, "lon": -87.880694, "radius_km": 1.83}, {"name": "Destacamento Militar #4", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.693361, "lon": -88.106333, "radius_km": 1.83}, {"name": "Destacamento Militar #5", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.719917, "lon": -88.925528, "radius_km": 1.83}, {"name": "Destacamento Militar #6", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.731056, "lon": -89.72575, "radius_km": 1.83}, {"name": "Destacamento Militar #7", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.921194, "lon": -89.843, "radius_km": 1.83}, {"name": "Destacamento Militar #9", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.507972, "lon": -88.873194, "radius_km": 1.83}, {"name": "Brigada de infantería #2", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.987861, "lon": -89.556694, "radius_km": 1.83}, {"name": "Brigada de infantería #3", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.490806, "lon": -88.191528, "radius_km": 1.83}, {"name": "Brigada de infantería #4", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 14.099278, "lon": -89.081056, "radius_km": 1.83}, {"name": "Brigada de infantería #5", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.644528, "lon": -88.78525, "radius_km": 1.83}, {"name": "Brigada de infantería #6", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.347972, "lon": -88.437639, "radius_km": 1.83}, {"name": "CEAT", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.698833, "lon": -89.115417, "radius_km": 1.83}, {"name": "Comando de Fuerzas Especiales", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.696389, "lon": -89.11225, "radius_km": 1.83}, {"name": "Grupo de Operaciones Especiales", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.690861, "lon": -89.120611, "radius_km": 1.83}, {"name": "Centro del Ejercito Armado de El Salvador", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.685028, "lon": -88.782167, "radius_km": 1.83}, {"name": "Cuartel San Carlos", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.715889, "lon": -89.195583, "radius_km": 1.83}, {"name": "Fuerza Aérea", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.694333, "lon": -89.1205, "radius_km": 1.83}, {"name": "Escuela Militar Capitán General Gerardo Barrios", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.687139, "lon": -89.234083, "radius_km": 1.83}, {"name": "Casa Presidencial de El Salvador", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.685111, "lon": -89.24, "radius_km": 1.83}, {"name": "Cuartel Militar El Zapote", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.681083, "lon": -89.192944, "radius_km": 1.83}, {"name": "Brigada Especial de Seguridad Militar", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.712806, "lon": -89.175861, "radius_km": 1.83}, {"name": "Primera brigada aérea", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.694611, "lon": -89.120306, "radius_km": 1.83}, {"name": "Escuela Militar Capitán General Gerardo Barrios (2)", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.681417, "lon": -89.253222, "radius_km": 1.83}, {"name": "Segunda Instalaciones de Escuela Militar", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.681139, "lon": -89.253278, "radius_km": 1.83}, {"name": "Regimiento de caballería", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.782444, "lon": -89.377111, "radius_km": 1.83}, {"name": "Delegación PNC Colón", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.704889, "lon": -89.340361, "radius_km": 1.83}, {"name": "Policía Nacional Civil San Ramón", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.729917, "lon": -89.220972, "radius_km": 1.83}, {"name": "Delegación PNC Miramonte", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.709417, "lon": -89.216583, "radius_km": 1.83}, {"name": "Delegación PNC Zacamil", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.726722, "lon": -89.200972, "radius_km": 1.83}, {"name": "Delegación PNC San Salvador", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.702694, "lon": -89.194417, "radius_km": 1.83}, {"name": "Sub Delegación PNC Ciudad Delgado", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.726917, "lon": -89.168861, "radius_km": 1.83}, {"name": "Delegación PNC El Cenizal", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.654444, "lon": -89.167639, "radius_km": 1.83}, {"name": "Delegación PNC San Salvador Zona Sur", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.671222, "lon": -89.192556, "radius_km": 1.83}, {"name": "Delegación PNC-DIN", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.664667, "lon": -89.181639, "radius_km": 1.83}, {"name": "Delegación PNC Los Conacastes", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.715833, "lon": -89.1355, "radius_km": 1.83}, {"name": "Delegación PNC San Salvador Poniente", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.704972, "lon": -89.235972, "radius_km": 1.83}, {"name": "Sub Delegación PNC San Jacinto", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.678917, "lon": -89.192333, "radius_km": 1.83}, {"name": "Delegación PNC Morazán", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.697, "lon": -88.106361, "radius_km": 1.83}, {"name": "Delegación PNC San José Soyapango", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.719528, "lon": -89.1285, "radius_km": 1.83}, {"name": "Delegación PNC Santa Lucía Ilopango", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.686111, "lon": -89.128194, "radius_km": 1.83}, {"name": "Delegación PNC Soyapango", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.700667, "lon": -89.104861, "radius_km": 1.83}, {"name": "Delegación PNC San Vicente", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.645556, "lon": -88.78, "radius_km": 1.83}, {"name": "Sub Delegación PNC El Tránsito", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.353556, "lon": -88.348083, "radius_km": 1.83}, {"name": "Delegación PNC Cojutepeque Cuscatlán", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.721306, "lon": -88.938833, "radius_km": 1.83}, {"name": "Delegación PNC San Antonio San Salvador", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.782, "lon": -89.172889, "radius_km": 1.83}, {"name": "Policía Nacional Civil – Planes de Renderos", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.649694, "lon": -89.182167, "radius_km": 1.83}, {"name": "Cuartel Central de la Policía Nacional Civil", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.695639, "lon": -89.187778, "radius_km": 1.83}, {"name": "Policía Nacional Civil – Plantel El Coro", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.698306, "lon": -89.1755, "radius_km": 1.83}, {"name": "Policía Nacional Civil – Cuscatancingo", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.722861, "lon": -89.177611, "radius_km": 1.83}, {"name": "Policía Nacional Civil – Santa Eduviges", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.721389, "lon": -89.13275, "radius_km": 1.83}, {"name": "Policía Nacional Civil – Dolores Apulo Ilopango", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.702972, "lon": -89.075917, "radius_km": 1.83}, {"name": "Policía Nacional Civil – San Miguel Tepezontes", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.622167, "lon": -89.020167, "radius_km": 1.83}, {"name": "Policía Nacional Civil – Perquín", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.958472, "lon": -88.156611, "radius_km": 1.83}, {"name": "Policía Nacional Civil de San Miguel", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.475528, "lon": -88.170583, "radius_km": 1.83}, {"name": "Policía Nacional Civil – Santiago Texacuangos", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.640306, "lon": -89.114861, "radius_km": 1.83}, {"name": "Centro de Educación e Instrucción Militar Aeronáutico (CIMA)", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.696083, "lon": -89.1155, "radius_km": 1.83}, {"name": "Colegio Militar «General Tomás Regalado»", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.696556, "lon": -89.207833, "radius_km": 1.83}, {"name": "Fuerza Naval de El Salvador", "category": "militar", "catLabel": "Instalaciones Militares y PNC", "color": "#b91c1c", "icon": "⛨", "lat": 13.705472, "lon": -89.177611, "radius_km": 1.83}, {"name": "Granja Penitenciaria de Santa Ana", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 14.0375, "lon": -89.520444, "radius_km": 1.83}, {"name": "Penal Apanteos", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 14.003019, "lon": -89.548434, "radius_km": 1.83}, {"name": "Centro Penal de Izalco", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.763111, "lon": -89.700694, "radius_km": 1.83}, {"name": "Centro Penal de Sonsonate", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.717306, "lon": -89.726306, "radius_km": 1.83}, {"name": "Centro Penal de Quezaltepeque", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.831528, "lon": -89.265389, "radius_km": 1.83}, {"name": "Centro Penal La Esperanza", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.756722, "lon": -89.190111, "radius_km": 1.83}, {"name": "Centro Penal de Menores Tonacatepeque", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.778139, "lon": -89.113111, "radius_km": 1.83}, {"name": "Cárcel de Mujeres", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.694806, "lon": -89.125306, "radius_km": 1.83}, {"name": "Centro Penal de Sensuntepeque", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.867889, "lon": -88.626167, "radius_km": 1.83}, {"name": "Penitenciaria Paracentral San Vicente", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.640556, "lon": -88.793417, "radius_km": 1.83}, {"name": "Centro Penal de Máxima Seguridad", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.499861, "lon": -88.860639, "radius_km": 1.83}, {"name": "Centro de Confinamiento del Terrorismo", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.533639, "lon": -88.805278, "radius_km": 1.83}, {"name": "Centro Penal de Usulután", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.350972, "lon": -88.438667, "radius_km": 1.83}, {"name": "Centro Penitenciario de San Miguel", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.484528, "lon": -88.179444, "radius_km": 1.83}, {"name": "Centro de Cumplimiento de Penas Ciudad Barrios", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.755472, "lon": -88.274111, "radius_km": 1.83}, {"name": "Centro Preventivo y de Cumplimiento de Pena Santa Ana", "category": "penitenciarios", "catLabel": "Centros Penitenciarios", "color": "#374151", "icon": "⛓", "lat": 13.9885, "lon": -89.554417, "radius_km": 1.83}, {"name": "Centro Judicial de Sonsonate", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.709, "lon": -89.731306, "radius_km": 1.83}, {"name": "Centro Judicial de Izalco", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.746917, "lon": -89.673944, "radius_km": 1.83}, {"name": "Centro Judicial de San Juan Opico", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.876583, "lon": -89.357639, "radius_km": 1.83}, {"name": "Centro Judicial Dr. Leonilo Montalvo", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.934417, "lon": -89.029361, "radius_km": 1.83}, {"name": "Centro Judicial de Chalatenango", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 14.04325, "lon": -88.937722, "radius_km": 1.83}, {"name": "Centro Judicial de Ilobasco", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.843833, "lon": -88.848222, "radius_km": 1.83}, {"name": "Centro Judicial de Tonacatepeque", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.78075, "lon": -89.120167, "radius_km": 1.83}, {"name": "Centro Judicial de Cojutepeque", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.722139, "lon": -88.934139, "radius_km": 1.83}, {"name": "Centro Judicial de San Sebastián", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.722806, "lon": -88.814528, "radius_km": 1.83}, {"name": "Centro Judicial Dr. Sarbelio Navarrete", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.646167, "lon": -88.783333, "radius_km": 1.83}, {"name": "Centro Judicial de San Pedro Mazahuat", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.542972, "lon": -89.038472, "radius_km": 1.83}, {"name": "Centro Judicial Dr. Francisco Guerrero", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.679083, "lon": -89.279472, "radius_km": 1.83}, {"name": "Centro Judicial Integrado de Santa Tecla", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.671222, "lon": -89.276889, "radius_km": 1.83}, {"name": "Centro Judicial de Segunda Instancia de San Salvador", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.7105, "lon": -89.197278, "radius_km": 1.83}, {"name": "Centro Judicial Isidro Menéndez", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.708444, "lon": -89.199083, "radius_km": 1.83}, {"name": "Centro Judicial Integrado de Derecho Privado Social", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.706861, "lon": -89.19625, "radius_km": 1.83}, {"name": "Centro Judicial Integrado de Soyapango", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.690472, "lon": -89.137722, "radius_km": 1.83}, {"name": "Centro Judicial de Sensuntepeque", "category": "judiciales", "catLabel": "Centros Judiciales", "color": "#78350f", "icon": "⚖", "lat": 13.876639, "lon": -88.627056, "radius_km": 1.83}, {"name": "Centro de Gobierno", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.705139, "lon": -89.198583, "radius_km": 1.83}, {"name": "Ministerio de Relaciones Exteriores de El Salvador", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.684139, "lon": -89.258806, "radius_km": 1.83}, {"name": "Ministerio de Justicia y Seguridad Pública de El Salvador", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.704028, "lon": -89.199806, "radius_km": 1.83}, {"name": "Dirección General de Migración y Extranjería de El Salvador", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.70275, "lon": -89.249167, "radius_km": 1.83}, {"name": "Dirección General de Protección Civil Prevención y Mitigación de Desastres", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.822, "lon": -89.25075, "radius_km": 1.83}, {"name": "Ministerio de Salud de El Salvador", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.699611, "lon": -89.198333, "radius_km": 1.83}, {"name": "Instituto Salvadoreño para el Desarrollo Integral de la niñez y Adolescencia", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.676639, "lon": -89.198278, "radius_km": 1.83}, {"name": "Ministerio de Vivienda", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.690778, "lon": -89.232611, "radius_km": 1.83}, {"name": "Ministerio de Economía", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.704333, "lon": -89.200778, "radius_km": 1.83}, {"name": "Ministerio de Educación Ciencia y Tecnología", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.704778, "lon": -89.200833, "radius_km": 1.83}, {"name": "Ministerio de Trabajo y Prevención Social", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.705667, "lon": -89.20025, "radius_km": 1.83}, {"name": "Ministerio de Gobernación y Desarrollo Territorial", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.704778, "lon": -89.198, "radius_km": 1.83}, {"name": "Ministerio de Turismo y CORSATUR", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.691639, "lon": -89.237111, "radius_km": 1.83}, {"name": "Ministerio de Hacienda", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.712639, "lon": -89.207056, "radius_km": 1.83}, {"name": "Ministerios de Agricultura y Ganadería", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.683944, "lon": -89.286639, "radius_km": 1.83}, {"name": "Ministerio de Medio Ambiente y Recursos Naturales", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.687583, "lon": -89.231111, "radius_km": 1.83}, {"name": "Ministerio de Obras Públicas", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.690194, "lon": -89.232111, "radius_km": 1.83}, {"name": "Ministerio de la Defensa", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.690583, "lon": -89.230806, "radius_km": 1.83}, {"name": "Instituto Salvadoreño para el Desarrollo de la Mujer", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.699917, "lon": -89.195611, "radius_km": 1.83}, {"name": "Ministerio de Cultura", "category": "gobierno", "catLabel": "Centros de Gobierno", "color": "#ca8a04", "icon": "🏛", "lat": 13.704722, "lon": -89.200417, "radius_km": 1.83}, {"name": "Subestación de Ilobasco", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.836583, "lon": -88.854778, "radius_km": 1.83}, {"name": "Subestación ETESAL – San Rafael Cedros", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.746361, "lon": -88.876667, "radius_km": 1.83}, {"name": "Subestación de energía eléctrica de Usulután", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.366667, "lon": -88.502861, "radius_km": 1.83}, {"name": "Subestación Eléctrica de Tecoluca", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.527167, "lon": -88.796972, "radius_km": 1.83}, {"name": "Subestación San Martin ETESAL", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.738722, "lon": -89.066972, "radius_km": 1.83}, {"name": "Subestación San Bartolo ETESAL", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.711111, "lon": -89.100361, "radius_km": 1.83}, {"name": "Subestación CEEL Santo Tomás", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.644611, "lon": -89.138972, "radius_km": 1.83}, {"name": "Subestación ETESAL Soyapango", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.707806, "lon": -89.163444, "radius_km": 1.83}, {"name": "DEL SUR-SE San Marcos", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.65525, "lon": -89.166583, "radius_km": 1.83}, {"name": "DEL SUR-SE Monserrat", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.674167, "lon": -89.19225, "radius_km": 1.83}, {"name": "Subestación Central de CAESS", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.698444, "lon": -89.182972, "radius_km": 1.83}, {"name": "Subestación Nejapa", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.774333, "lon": -89.205167, "radius_km": 1.83}, {"name": "DEL SUR-SE El Chorrerón", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.672583, "lon": -88.932472, "radius_km": 1.83}, {"name": "Subestación San Antonio Abad AES-ETESAL", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.727444, "lon": -89.231583, "radius_km": 1.83}, {"name": "Subestación nuevo Cuscatlán", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.657583, "lon": -89.275778, "radius_km": 1.83}, {"name": "Subestación San Matías de ETESAL", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.738778, "lon": -89.066944, "radius_km": 1.83}, {"name": "Subestación Ateos del Sur", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.723806, "lon": -89.426889, "radius_km": 1.83}, {"name": "Subestación Monserrat CAESS", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.674139, "lon": -89.192278, "radius_km": 1.83}, {"name": "Subestación ETESAL Berlín", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.525528, "lon": -88.509194, "radius_km": 1.83}, {"name": "Subestación ETESAL 15 de septiembre", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.62675, "lon": -88.564306, "radius_km": 1.83}, {"name": "CECSA Sonsonate", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.719639, "lon": -89.725972, "radius_km": 1.83}, {"name": "Subestación ETESAL Ozatlán", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.366694, "lon": -88.502722, "radius_km": 1.83}, {"name": "Subestación Jalacatal", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.487833, "lon": -88.192972, "radius_km": 1.83}, {"name": "Subestación ETESAL Ahuachapán", "category": "electrico", "catLabel": "Subestaciones Eléctricas", "color": "#eab308", "icon": "⚡", "lat": 13.921833, "lon": -89.817556, "radius_km": 1.83}, {"name": "Presa 5 de Noviembre", "category": "presas", "catLabel": "Presas Hidroeléctricas", "color": "#0891b2", "icon": "💧", "lat": 13.921833, "lon": -89.817556, "radius_km": 1.83}, {"name": "Presa el Guayoyo", "category": "presas", "catLabel": "Presas Hidroeléctricas", "color": "#0891b2", "icon": "💧", "lat": 13.966667, "lon": -88.8, "radius_km": 1.83}, {"name": "Presa Cerrón Grande", "category": "presas", "catLabel": "Presas Hidroeléctricas", "color": "#0891b2", "icon": "💧", "lat": 14.227694, "lon": -89.473111, "radius_km": 1.83}, {"name": "Presa 3 de Febrero", "category": "presas", "catLabel": "Presas Hidroeléctricas", "color": "#0891b2", "icon": "💧", "lat": 13.938528, "lon": -88.902472, "radius_km": 1.83}, {"name": "Central Geotérmica Ahuachapán", "category": "geotermicas", "catLabel": "Plantas Geotérmicas", "color": "#c2410c", "icon": "🌋", "lat": 13.920167, "lon": -89.817278, "radius_km": 1.83}, {"name": "Central Geotérmica Berlín", "category": "geotermicas", "catLabel": "Plantas Geotérmicas", "color": "#c2410c", "icon": "🌋", "lat": 13.512222, "lon": -88.513889, "radius_km": 1.83}, {"name": "Campo Geotérmico Berlín", "category": "geotermicas", "catLabel": "Plantas Geotérmicas", "color": "#c2410c", "icon": "🌋", "lat": 13.524722, "lon": -88.508611, "radius_km": 1.83}, {"name": "Hospital Nacional Regional «San Juan de Dios»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.991917, "lon": -89.55125, "radius_km": 1.83}, {"name": "Hospital Nacional Francisco Menéndez", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.929306, "lon": -89.846472, "radius_km": 1.83}, {"name": "Hospital Nacional General «Dr. Jorge Mazzini Villacorta»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.722861, "lon": -89.729528, "radius_km": 1.83}, {"name": "Hospital Nacional General «Dr. Luis Edmundo Vásquez»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 14.038639, "lon": -88.936028, "radius_km": 1.83}, {"name": "Hospital Nacional General «San Rafael»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.670944, "lon": -89.27825, "radius_km": 1.83}, {"name": "Hospital Nacional «Dr. Juan José Fernández»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.728889, "lon": -89.207556, "radius_km": 1.83}, {"name": "Hospital Nacional General y de Psiquiatría «Dr. José Molina Martínez»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.714083, "lon": -89.139778, "radius_km": 1.83}, {"name": "Hospital Nacional de San Bartolo", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.704778, "lon": -89.106028, "radius_km": 1.83}, {"name": "Hospital Nacional de la Mujer", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.690556, "lon": -89.204278, "radius_km": 1.83}, {"name": "Hospital Nacional Rosales", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.700472, "lon": -89.205917, "radius_km": 1.83}, {"name": "Hospital Nacional General de Neumología «Dr. José Antonio Saldaña»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.647278, "lon": -89.195472, "radius_km": 1.83}, {"name": "Hospital Nacional de Niños «Benjamín Bloom»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.714056, "lon": -89.203917, "radius_km": 1.83}, {"name": "Hospital Nacional «Nuestra Señora de Fátima»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.725889, "lon": -88.942333, "radius_km": 1.83}, {"name": "Hospital Nacional General de Suchitoto", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.933079, "lon": -89.030703, "radius_km": 1.83}, {"name": "Hospital Nacional «Santa Teresa»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.517556, "lon": -88.868417, "radius_km": 1.83}, {"name": "Hospital Nacional General «Santa Gertrudis»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.640917, "lon": -88.783861, "radius_km": 1.83}, {"name": "Hospital Nacional «San Jerónimo Emiliani»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.875722, "lon": -88.622139, "radius_km": 1.83}, {"name": "Hospital Nacional de Ilobasco", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.839167, "lon": -88.858806, "radius_km": 1.83}, {"name": "Hospital Nacional General «San Pedro»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.343361, "lon": -88.449792, "radius_km": 1.83}, {"name": "Hospital Nacional General «Dr. Jorge Arturo Mena»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.484833, "lon": -88.468639, "radius_km": 1.83}, {"name": "Hospital Nacional General «Dr. Héctor Antonio Hernández Flores»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.697917, "lon": -88.101944, "radius_km": 1.83}, {"name": "Hospital Nacional San Juan De Dios San Miguel", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.473972, "lon": -88.191111, "radius_km": 1.83}, {"name": "Hospital Nacional «Monseñor Óscar Arnulfo Romero»", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.767361, "lon": -88.268083, "radius_km": 1.83}, {"name": "Hospital Nacional de Santa Rosa de Lima", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.620972, "lon": -87.896889, "radius_km": 1.83}, {"name": "Hospital Nacional General de la Unión", "category": "hospitales", "catLabel": "Hospitales Nacionales", "color": "#0d9488", "icon": "➕", "lat": 13.347167, "lon": -87.876056, "radius_km": 1.83}, {"name": "Embajada de Alemania", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.705972, "lon": -89.234472, "radius_km": 1.83}, {"name": "Embajada de Argentina", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.700444, "lon": -89.243639, "radius_km": 1.83}, {"name": "Embajada de Brasil", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.69375, "lon": -89.236722, "radius_km": 1.83}, {"name": "Embajada de Canadá", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.663111, "lon": -89.254278, "radius_km": 1.83}, {"name": "Embajada de Chile", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.703722, "lon": -89.253278, "radius_km": 1.83}, {"name": "Embajada de Colombia", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.696806, "lon": -89.247222, "radius_km": 1.83}, {"name": "Embajada de Corea", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.706417, "lon": -89.234472, "radius_km": 1.83}, {"name": "Embajada de Costa Rica", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.688028, "lon": -89.240528, "radius_km": 1.83}, {"name": "Embajada de Cuba", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.705778, "lon": -89.259361, "radius_km": 1.83}, {"name": "Embajada de Ecuador", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.710639, "lon": -89.240139, "radius_km": 1.83}, {"name": "Embajada de España", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.693778, "lon": -89.233111, "radius_km": 1.83}, {"name": "Embajada de los Estados Unidos América", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.663806, "lon": -89.258083, "radius_km": 1.83}, {"name": "Embajada de Francia", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.703083, "lon": -89.229444, "radius_km": 1.83}, {"name": "Embajada de Guatemala", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.700444, "lon": -89.198972, "radius_km": 1.83}, {"name": "Embajada de Honduras", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.707639, "lon": -89.24225, "radius_km": 1.83}, {"name": "Embajada de Italia", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.693944, "lon": -89.232361, "radius_km": 1.83}, {"name": "Embajada de Japón", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.708167, "lon": -89.241611, "radius_km": 1.83}, {"name": "Embajada de México", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.690833, "lon": -89.243306, "radius_km": 1.83}, {"name": "Embajada de Nicaragua", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.707472, "lon": -89.245917, "radius_km": 1.83}, {"name": "Embajada de Panamá", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.6885, "lon": -89.223417, "radius_km": 1.83}, {"name": "Embajada de Perú", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.718389, "lon": -89.243806, "radius_km": 1.83}, {"name": "Embajada del Estado de Qatar", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.719194, "lon": -89.245861, "radius_km": 1.83}, {"name": "Embajada de República Dominicana", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.698611, "lon": -89.241722, "radius_km": 1.83}, {"name": "Embajada de la República Popular China", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.701056, "lon": -89.230111, "radius_km": 1.83}, {"name": "Embajada de Uruguay", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.689556, "lon": -89.240778, "radius_km": 1.83}, {"name": "Embajada de Venezuela", "category": "embajadas", "catLabel": "Embajadas", "color": "#4338ca", "icon": "🌐", "lat": 13.697944, "lon": -89.248556, "radius_km": 1.83}];
+
+// ---------- MAP INIT ----------
+const map = L.map('map', { zoomControl: true }).setView([13.7942, -88.8965], 9);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 18
+}).addTo(map);
+
+// dark-ish filter via CSS on tile pane for aviation feel
+const style = document.createElement('style');
+style.textContent = `.leaflet-tile-pane{ filter: brightness(0.62) contrast(1.05) saturate(0.75) hue-rotate(180deg) invert(1); }`;
+document.head.appendChild(style);
+
+const categoryLayers = {};
+const categoryMeta = {};
+
+ZONES.forEach(z => {
+  if (!categoryLayers[z.category]) {
+    categoryLayers[z.category] = L.layerGroup().addTo(map);
+    categoryMeta[z.category] = { label: z.catLabel, color: z.color, icon: z.icon, count: 0 };
+  }
+  categoryMeta[z.category].count++;
+
+  const circle = L.circle([z.lat, z.lon], {
+    radius: z.radius_km * 1000,
+    color: z.color,
+    weight: 1.5,
+    fillColor: z.color,
+    fillOpacity: 0.18,
+    opacity: 0.85
+  });
+  circle.bindPopup(`<b>${z.icon} ${z.name}</b><br>${z.catLabel}<br>Radio: ${z.radius_km} km<br>${z.lat.toFixed(5)}, ${z.lon.toFixed(5)}`);
+  circle.addTo(categoryLayers[z.category]);
+
+  const centerDot = L.circleMarker([z.lat, z.lon], {
+    radius: 2.5, color: z.color, fillColor: z.color, fillOpacity: 1, weight: 1
+  });
+  centerDot.addTo(categoryLayers[z.category]);
+});
+
+// ---------- LEGEND ----------
+const legendList = document.getElementById('legendList');
+Object.keys(categoryMeta).forEach(key => {
+  const meta = categoryMeta[key];
+  const item = document.createElement('label');
+  item.className = 'legend-item';
+  item.innerHTML = `
+    <input type="checkbox" checked data-cat="${key}">
+    <span class="legend-swatch" style="background:${meta.color}"></span>
+    <span class="legend-label">${meta.icon} ${meta.label}</span>
+    <span class="legend-count">${meta.count}</span>
+  `;
+  legendList.appendChild(item);
+});
+legendList.addEventListener('change', (e) => {
+  const cb = e.target;
+  if (cb.matches('input[type=checkbox]')) {
+    const cat = cb.dataset.cat;
+    if (cb.checked) { map.addLayer(categoryLayers[cat]); }
+    else { map.removeLayer(categoryLayers[cat]); }
+  }
+});
+
+// ---------- COORDINATE PARSER ----------
+// Accepts decimal degrees (e.g. 13.6911, -89.1983) or GMS/DMS strings
+// e.g. 13°41'27.9"N , 13 41 27.9 N , 13°41'27.9"  (no hemisphere -> sign from leading '-')
+// axis: 'lat' or 'lon'. When the string carries no hemisphere letter AND no explicit
+// leading '-' sign, we assume the El Salvador context: latitude defaults to North (+),
+// longitude defaults to West (-). An explicit hemisphere letter or a leading '-' always wins.
+function applySign(value, axis, hemi, explicitNegative) {
+  if (hemi === 'S' || hemi === 'W') return -Math.abs(value);
+  if (hemi === 'N' || hemi === 'E') return Math.abs(value);
+  if (explicitNegative) return -Math.abs(value);
+  // no hemisphere letter, no explicit sign -> contextual default
+  return axis === 'lon' ? -Math.abs(value) : Math.abs(value);
+}
+
+function parseCoordinate(raw, axis) {
+  if (!raw) return null;
+  let s = raw.trim();
+  if (!s) return null;
+
+  // normalize unicode variants of degree/minute/second marks
+  s = s.replace(/[ºØ]/g, '°')
+       .replace(/[’‘´′]/g, "'")
+       .replace(/[”“″]/g, '"')
+       .replace(/,/g, '.');
+
+  // pure decimal degrees (optionally with trailing hemisphere letter)
+  let m = s.match(/^(-)?(\d+(?:\.\d+)?)\s*°?\s*([NnSsEeWw])?$/);
+  if (m) {
+    const explicitNegative = !!m[1];
+    const val = parseFloat(m[2]);
+    const hemi = m[3] ? m[3].toUpperCase() : null;
+    return applySign(val, axis, hemi, explicitNegative);
+  }
+
+  // DMS: degrees ° minutes ' seconds " hemisphere
+  m = s.match(/^(-)?(\d+(?:\.\d+)?)\s*°\s*(\d+(?:\.\d+)?)?\s*'?\s*(\d+(?:\.\d+)?)?\s*"?\s*([NnSsEeWw])?/);
+  if (m && m[2] !== undefined) {
+    const explicitNegative = !!m[1];
+    const deg = parseFloat(m[2]);
+    const min = m[3] ? parseFloat(m[3]) : 0;
+    const sec = m[4] ? parseFloat(m[4]) : 0;
+    const hemi = m[5] ? m[5].toUpperCase() : null;
+    const val = deg + min / 60 + sec / 3600;
+    return applySign(val, axis, hemi, explicitNegative);
+  }
+
+  // space separated D M S [hemi]  e.g. "13 41 27.9 N"
+  m = s.match(/^(-)?(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s*([NnSsEeWw])?$/);
+  if (m) {
+    const explicitNegative = !!m[1];
+    const deg = parseFloat(m[2]);
+    const min = parseFloat(m[3]);
+    const sec = parseFloat(m[4]);
+    const hemi = m[5] ? m[5].toUpperCase() : null;
+    const val = deg + min / 60 + sec / 3600;
+    return applySign(val, axis, hemi, explicitNegative);
+  }
+
+  return null;
+}
+
+// ---------- HAVERSINE ----------
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// ---------- POINT MARKER ----------
+let pointMarker = null;
+let bufferCircles = [];
+
+function clearPoint() {
+  if (pointMarker) { map.removeLayer(pointMarker); pointMarker = null; }
+  bufferCircles.forEach(c => map.removeLayer(c));
+  bufferCircles = [];
+  const result = document.getElementById('result');
+  result.classList.remove('show', 'safe', 'unsafe');
+  result.innerHTML = '';
+  document.getElementById('latInput').value = '';
+  document.getElementById('lonInput').value = '';
+}
+
+document.getElementById('clearBtn').addEventListener('click', clearPoint);
+
+const dronePinSVG = (color) => L.divIcon({
+  className: '',
+  html: `<div style="width:22px;height:22px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 0 4px ${color}55, 0 4px 10px rgba(0,0,0,0.5);"></div>`,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11]
+});
+
+document.getElementById('checkBtn').addEventListener('click', () => {
+  const latRaw = document.getElementById('latInput').value;
+  const lonRaw = document.getElementById('lonInput').value;
+
+  const lat = parseCoordinate(latRaw, 'lat');
+  const lon = parseCoordinate(lonRaw, 'lon');
+
+  const result = document.getElementById('result');
+
+  if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
+    result.className = 'unsafe';
+    result.classList.add('show');
+    result.innerHTML = `
+      <div class="headline"><span class="headline-dot"></span>Coordenadas no válidas</div>
+      <div class="sub">Revisa el formato. Ejemplos válidos: <b>13°41'27.9"N</b> o <b>13.6911</b>.</div>
+    `;
+    return;
+  }
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    result.className = 'unsafe';
+    result.classList.add('show');
+    result.innerHTML = `
+      <div class="headline"><span class="headline-dot"></span>Fuera de rango</div>
+      <div class="sub">La latitud debe estar entre -90 y 90, la longitud entre -180 y 180.</div>
+    `;
+    return;
+  }
+
+  // clear previous point/buffers
+  bufferCircles.forEach(c => map.removeLayer(c));
+  bufferCircles = [];
+  if (pointMarker) map.removeLayer(pointMarker);
+
+  // evaluate against ALL zones, all directions
+  const conflicts = [];
+  ZONES.forEach(z => {
+    const d = haversineKm(lat, lon, z.lat, z.lon);
+    const safeLimit = z.radius_km * 2;
+    if (d < safeLimit) {
+      conflicts.push({ ...z, distance: d, safeLimit });
+    }
+  });
+  conflicts.sort((a, b) => a.distance - b.distance);
+
+  const isSafe = conflicts.length === 0;
+
+  pointMarker = L.marker([lat, lon], { icon: dronePinSVG(isSafe ? '#16a34a' : '#dc2626') })
+    .addTo(map)
+    .bindPopup(`<b>Punto ingresado</b><br>${lat.toFixed(6)}, ${lon.toFixed(6)}`)
+    .openPopup();
+
+  // draw conflicting zones' safe-limit rings for context (dashed)
+  conflicts.slice(0, 8).forEach(c => {
+    const ring = L.circle([c.lat, c.lon], {
+      radius: c.safeLimit * 1000,
+      color: '#dc2626', weight: 1.2, dashArray: '5,5',
+      fillOpacity: 0, opacity: 0.6
+    }).addTo(map);
+    bufferCircles.push(ring);
+  });
+
+  map.setView([lat, lon], conflicts.length ? 12 : 10, { animate: true });
+
+  if (isSafe) {
+    result.className = 'safe';
+    result.classList.add('show');
+    result.innerHTML = `
+      <div class="headline"><span class="headline-dot"></span>Seguro para volar</div>
+      <div class="sub">El punto ingresado está a una distancia igual o mayor a 2× el radio de las 222 geozonas registradas.</div>
+    `;
+  } else {
+    result.className = 'unsafe';
+    result.classList.add('show');
+    const listHtml = conflicts.slice(0, 6).map(c => `
+      <li class="conflict-item">
+        <span class="cat-swatch" style="background:${c.color}"></span>
+        <span class="cname" title="${c.name}">${c.icon} ${c.name}</span>
+        <span class="cdist">${c.distance.toFixed(2)} km / lim ${c.safeLimit.toFixed(2)}</span>
+      </li>
+    `).join('');
+    result.innerHTML = `
+      <div class="headline"><span class="headline-dot"></span>No seguro para volar</div>
+      <div class="sub">${conflicts.length} geozona(s) dentro del margen de seguridad (2× radio). Las más cercanas:</div>
+      <ul class="conflict-list">${listHtml}</ul>
+    `;
+  }
+});
+
+document.getElementById('latInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('checkBtn').click(); });
+document.getElementById('lonInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('checkBtn').click(); });
+</script>
+</body>
+</html>
